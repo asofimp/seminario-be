@@ -1,0 +1,34 @@
+{
+  "title": "",
+  "description": "",
+  "questions": [
+    {
+      "text": "¿Has usado alguna herramienta de IA?",
+      "type": "single",
+      "options": [
+        { "value": "a", "label": "Sí, a diario" },
+        { "value": "b", "label": "Sí, de vez en cuando" },
+        { "value": "c", "label": "Nunca" }
+      ]
+    },
+    {
+      "text": "¿Has usado un agente de IA?",
+      "type": "single",
+      "options": [
+        { "value": "a", "label": "Sí" },
+        { "value": "b", "label": "No" },
+        { "value": "c", "label": "No estoy seguro" }
+      ]
+    },
+    {
+      "text": "Su empresa ya tiene un agente de IA de ciberseguridad. ¿Cuánta autonomía le darían?",
+      "type": "single",
+      "options": [
+        { "value": "a", "label": "Que solo recomiende y yo apruebo" },
+        { "value": "b", "label": "Que actúe dentro de límites y yo vigile" },
+        { "value": "c", "label": "Que decida y ejecute solo" },
+        { "value": "d", "label": "Ninguna: todavía no confío" }
+      ]
+    }
+  ]
+}

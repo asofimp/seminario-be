@@ -1,0 +1,191 @@
+import { Logger, UseFilters, UsePipes, ValidationPipe } from '@nestjs/common';
+import { ConfigService } from '@nestjs/config';
+import { OnEvent } from '@nestjs/event-emitter';
+import {
+  ConnectedSocket,
+  MessageBody,
+  OnGatewayConnection,
+  OnGatewayDisconnect,
+  SubscribeMessage,
+  WebSocketGateway,
+  WebSocketServer,
+  WsException,
+} from '@nestjs/websockets';
+import { Namespace, Socket } from 'socket.io';
+import { AnalyticsService } from '../analytics/analytics.service';
+import { Events } from '../common/events';
+import type {
+  PresentationStateChangedEvent,
+  ResponseSubmittedEvent,
+} from '../common/events';
+import { WsExceptionFilter } from '../common/filters/ws-exception.filter';
+import { UpdateStateDto } from '../presentations/dto/update-state.dto';
+import { PresentationsService } from '../presentations/presentations.service';
+import { SubmitResponseDto } from '../responses/dto/submit-response.dto';
+import { ResponsesService } from '../responses/responses.service';
+
+export type ClientRole = 'audience' | 'screen' | 'admin';
+const ROLES: ClientRole[] = ['audience', 'screen', 'admin'];
+
+interface ClientData {
+  code: string;
+  role: ClientRole;
+}
+type LiveSocket = Socket<any, any, any, ClientData>;
+
+const RESULTS_DEBOUNCE_MS = 250;
+
+const room = (code: string, role?: ClientRole) =>
+  role ? `${code}:${role}` : code;
+
+// Clients connect with: io(`${API}/live`, { auth: { code, role, adminKey? } })
+@WebSocketGateway({ namespace: 'live', cors: { origin: true } })
+@UseFilters(new WsExceptionFilter())
+@UsePipes(new ValidationPipe({ whitelist: true }))
+export class LiveGateway implements OnGatewayConnection, OnGatewayDisconnect {
+  @WebSocketServer()
+  private readonly server: Namespace;
+
+  private readonly logger = new Logger(LiveGateway.name);
+  private readonly pendingResults = new Map<string, NodeJS.Timeout>();
+
+  constructor(
+    private readonly config: ConfigService,
+    private readonly presentationsService: PresentationsService,
+    private readonly responsesService: ResponsesService,
+    private readonly analyticsService: AnalyticsService,
+  ) {}
+
+  async handleConnection(client: LiveSocket) {
+    const { code, role, adminKey } = client.handshake.auth as Record<
+      string,
+      string
+    >;
+
+    if (!code || !ROLES.includes(role as ClientRole)) {
+      return this.reject(client, 'Missing or invalid code/role');
+    }
+    if (role === 'admin' && adminKey !== this.config.get('adminApiKey')) {
+      return this.reject(client, 'Invalid admin key');
+    }
+
+    try {
+      const snapshot = await this.presentationsService.getSnapshot(code);
+      const normalizedCode = snapshot.presentation.code;
+      client.data = { code: normalizedCode, role: role as ClientRole };
+      await client.join([
+        room(normalizedCode),
+        room(normalizedCode, role as ClientRole),
+      ]);
+
+      client.emit('presentation:snapshot', snapshot);
+      await this.broadcastParticipants(normalizedCode);
+      if (
+        role !== 'audience' ||
+        snapshot.presentation.state.showResultsToAudience
+      ) {
+        await this.emitCurrentResults(normalizedCode, client);
+      }
+    } catch {
+      this.reject(client, `Presentation ${code} not found`);
+    }
+  }
+
+  async handleDisconnect(client: LiveSocket) {
+    if (client.data?.code) {
+      await this.broadcastParticipants(client.data.code);
+    }
+  }
+
+  @SubscribeMessage('audience:answer')
+  async onAnswer(
+    @ConnectedSocket() client: LiveSocket,
+    @MessageBody() dto: SubmitResponseDto,
+  ) {
+    await this.responsesService.submit(client.data.code, dto);
+    return { ok: true };
+  }
+
+  @SubscribeMessage('admin:update-state')
+  async onUpdateState(
+    @ConnectedSocket() client: LiveSocket,
+    @MessageBody() dto: UpdateStateDto,
+  ) {
+    this.assertAdmin(client);
+    const presentation = await this.presentationsService.updateState(
+      client.data.code,
+      dto,
+    );
+    return presentation.state;
+  }
+
+  @SubscribeMessage('admin:next')
+  async onNext(@ConnectedSocket() client: LiveSocket) {
+    this.assertAdmin(client);
+    return (await this.presentationsService.step(client.data.code, 1)).state;
+  }
+
+  @SubscribeMessage('admin:prev')
+  async onPrev(@ConnectedSocket() client: LiveSocket) {
+    this.assertAdmin(client);
+    return (await this.presentationsService.step(client.data.code, -1)).state;
+  }
+
+  // State changes may come from REST or sockets; both emit this event.
+  @OnEvent(Events.PRESENTATION_STATE_CHANGED)
+  async onStateChanged({ code, state }: PresentationStateChangedEvent) {
+    this.server.to(room(code)).emit('presentation:state', state);
+    await this.emitCurrentResults(code);
+  }
+
+  // Debounced so a burst of votes produces a single aggregation per window.
+  @OnEvent(Events.RESPONSE_SUBMITTED)
+  onResponseSubmitted({ code }: ResponseSubmittedEvent) {
+    if (this.pendingResults.has(code)) return;
+    this.pendingResults.set(
+      code,
+      setTimeout(() => {
+        this.pendingResults.delete(code);
+        this.emitCurrentResults(code).catch((err: unknown) =>
+          this.logger.error(`Failed to broadcast results for ${code}`, err),
+        );
+      }, RESULTS_DEBOUNCE_MS),
+    );
+  }
+
+  private async emitCurrentResults(code: string, target?: LiveSocket) {
+    const { state } = await this.presentationsService.findByCode(code);
+    if (!state.currentQuestionId) return;
+
+    const results = await this.analyticsService.questionResults(
+      code,
+      state.currentQuestionId,
+    );
+    if (target) {
+      target.emit('results:update', results);
+      return;
+    }
+
+    const rooms = [room(code, 'screen'), room(code, 'admin')];
+    if (state.showResultsToAudience) rooms.push(room(code, 'audience'));
+    this.server.to(rooms).emit('results:update', results);
+  }
+
+  private async broadcastParticipants(code: string) {
+    const sockets = await this.server.in(room(code, 'audience')).fetchSockets();
+    this.server
+      .to([room(code, 'screen'), room(code, 'admin')])
+      .emit('participants:count', sockets.length);
+  }
+
+  private assertAdmin(client: LiveSocket) {
+    if (client.data.role !== 'admin') {
+      throw new WsException('Admin role required');
+    }
+  }
+
+  private reject(client: LiveSocket, message: string) {
+    client.emit('exception', { status: 'error', message });
+    client.disconnect(true);
+  }
+}
