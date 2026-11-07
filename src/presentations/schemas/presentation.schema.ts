@@ -38,6 +38,10 @@ export class PresentationState {
   // Diapositiva que muestra la pantalla proyectada (la controla el admin).
   @Prop({ default: 0, min: 0 })
   slideIndex: number;
+
+  // Panel lateral de la diapositiva (ej. definición y analogía): lo abre el admin.
+  @Prop({ default: false })
+  showSidePanel: boolean;
 }
 export const PresentationStateSchema =
   SchemaFactory.createForClass(PresentationState);

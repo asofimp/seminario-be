@@ -35,4 +35,8 @@ export class UpdateStateDto {
   @IsInt()
   @Min(0)
   slideIndex?: number;
+
+  @IsOptional()
+  @IsBoolean()
+  showSidePanel?: boolean;
 }

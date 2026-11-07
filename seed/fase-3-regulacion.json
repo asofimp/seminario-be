@@ -1,0 +1,16 @@
+{
+  "title": "Fase 3 · Regulación de la IA en la ciberseguridad",
+  "description": "Votación de context/Regulacion_de_la_IA_en_la_ciberseguridad.md (pregunta final).",
+  "questions": [
+    {
+      "text": "Si hoy su agente de IA fallara, ¿podrían dar una alerta en 24 horas, con evidencia?",
+      "type": "single",
+      "options": [
+        { "value": "a", "label": "Sí, con evidencia" },
+        { "value": "b", "label": "Sí, pero sin evidencia" },
+        { "value": "c", "label": "No" },
+        { "value": "d", "label": "No estoy seguro" }
+      ]
+    }
+  ]
+}

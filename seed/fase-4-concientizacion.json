@@ -1,0 +1,39 @@
+{
+  "title": "Fase 4 · Concientización sobre agentes de IA",
+  "description": "Votaciones de context/Concientizacion.md: inicio, deepfakes y ¿mito o realidad?",
+  "questions": [
+    {
+      "text": "¿Has pegado algo del trabajo o de la universidad en una IA?",
+      "type": "single",
+      "options": [
+        { "value": "a", "label": "Sí" },
+        { "value": "b", "label": "No" }
+      ]
+    },
+    {
+      "text": "¿Verificarías a tu jefe en una videollamada?",
+      "type": "single",
+      "options": [
+        { "value": "a", "label": "Sí" },
+        { "value": "b", "label": "No" },
+        { "value": "c", "label": "Depende" }
+      ]
+    },
+    {
+      "text": "«Siempre se puede apagar»: ¿mito o realidad?",
+      "type": "single",
+      "options": [
+        { "value": "mito", "label": "Mito" },
+        { "value": "realidad", "label": "Realidad" }
+      ]
+    },
+    {
+      "text": "«Un buen prompt evita los problemas»: ¿mito o realidad?",
+      "type": "single",
+      "options": [
+        { "value": "mito", "label": "Mito" },
+        { "value": "realidad", "label": "Realidad" }
+      ]
+    }
+  ]
+}

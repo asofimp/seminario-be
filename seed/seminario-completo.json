@@ -1,0 +1,168 @@
+{
+  "title": "Ciberseguridad con Inteligencia Artificial",
+  "description": "Presentación completa: fase 1 (agentes de IA, preguntas 1–3), fase 2 (incidentes, 4), fase 3 (regulación, 5) y fase 4 (concientización, 6–9).",
+  "questions": [
+    {
+      "text": "¿Has usado alguna herramienta de IA?",
+      "type": "single",
+      "options": [
+        {
+          "value": "a",
+          "label": "Sí, a diario"
+        },
+        {
+          "value": "b",
+          "label": "Sí, de vez en cuando"
+        },
+        {
+          "value": "c",
+          "label": "Nunca"
+        }
+      ]
+    },
+    {
+      "text": "¿Has usado un agente de IA?",
+      "type": "single",
+      "options": [
+        {
+          "value": "a",
+          "label": "Sí"
+        },
+        {
+          "value": "b",
+          "label": "No"
+        },
+        {
+          "value": "c",
+          "label": "No estoy seguro"
+        }
+      ]
+    },
+    {
+      "text": "Su empresa ya tiene un agente de IA de ciberseguridad. ¿Cuánta autonomía le darían?",
+      "type": "single",
+      "options": [
+        {
+          "value": "a",
+          "label": "Que solo recomiende y yo apruebo"
+        },
+        {
+          "value": "b",
+          "label": "Que actúe dentro de límites y yo vigile"
+        },
+        {
+          "value": "c",
+          "label": "Que decida y ejecute solo"
+        },
+        {
+          "value": "d",
+          "label": "Ninguna: todavía no confío"
+        }
+      ]
+    },
+    {
+      "text": "Si hoy un agente de IA trabajara en su organización, ¿sabrían qué permisos tiene, quién es su responsable y cómo detenerlo?",
+      "type": "single",
+      "options": [
+        {
+          "value": "a",
+          "label": "Sí, las tres cosas"
+        },
+        {
+          "value": "b",
+          "label": "Solo algunas"
+        },
+        {
+          "value": "c",
+          "label": "No"
+        },
+        {
+          "value": "d",
+          "label": "No estoy seguro"
+        }
+      ]
+    },
+    {
+      "text": "Si hoy su agente de IA fallara, ¿podrían dar una alerta en 24 horas, con evidencia?",
+      "type": "single",
+      "options": [
+        {
+          "value": "a",
+          "label": "Sí, con evidencia"
+        },
+        {
+          "value": "b",
+          "label": "Sí, pero sin evidencia"
+        },
+        {
+          "value": "c",
+          "label": "No"
+        },
+        {
+          "value": "d",
+          "label": "No estoy seguro"
+        }
+      ]
+    },
+    {
+      "text": "¿Has pegado algo del trabajo o de la universidad en una IA?",
+      "type": "single",
+      "options": [
+        {
+          "value": "a",
+          "label": "Sí"
+        },
+        {
+          "value": "b",
+          "label": "No"
+        }
+      ]
+    },
+    {
+      "text": "¿Verificarías a tu jefe en una videollamada?",
+      "type": "single",
+      "options": [
+        {
+          "value": "a",
+          "label": "Sí"
+        },
+        {
+          "value": "b",
+          "label": "No"
+        },
+        {
+          "value": "c",
+          "label": "Depende"
+        }
+      ]
+    },
+    {
+      "text": "«Siempre se puede apagar»: ¿mito o realidad?",
+      "type": "single",
+      "options": [
+        {
+          "value": "mito",
+          "label": "Mito"
+        },
+        {
+          "value": "realidad",
+          "label": "Realidad"
+        }
+      ]
+    },
+    {
+      "text": "«Un buen prompt evita los problemas»: ¿mito o realidad?",
+      "type": "single",
+      "options": [
+        {
+          "value": "mito",
+          "label": "Mito"
+        },
+        {
+          "value": "realidad",
+          "label": "Realidad"
+        }
+      ]
+    }
+  ]
+}

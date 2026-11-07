@@ -40,6 +40,7 @@ Flujo: cuando el admin cambia el estado o llega un voto, el servicio guarda en M
 | `acceptingResponses`    | boolean                                       | Abre o cierra la votación               |
 | `showResultsToAudience` | boolean                                       | Si la audiencia también recibe gráficos |
 | `slideIndex`            | número ≥ 0                                    | Diapositiva de la pantalla proyectada   |
+| `showSidePanel`         | boolean                                       | Panel lateral de la diapositiva (lo abre el admin) |
 
 ## REST
 

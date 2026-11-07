@@ -1,0 +1,16 @@
+{
+  "title": "Fase 2 · Incidentes con agentes de IA",
+  "description": "Votación de context/Incidentes_agentes_IA.md (pregunta final).",
+  "questions": [
+    {
+      "text": "Si hoy un agente de IA trabajara en su organización, ¿sabrían qué permisos tiene, quién es su responsable y cómo detenerlo?",
+      "type": "single",
+      "options": [
+        { "value": "a", "label": "Sí, las tres cosas" },
+        { "value": "b", "label": "Solo algunas" },
+        { "value": "c", "label": "No" },
+        { "value": "d", "label": "No estoy seguro" }
+      ]
+    }
+  ]
+}
