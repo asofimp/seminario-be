@@ -42,6 +42,7 @@ Flujo: cuando el admin cambia el estado o llega un voto, el servicio guarda en M
 | `slideIndex`            | número ≥ 0                                    | Diapositiva de la pantalla proyectada   |
 | `showSidePanel`         | boolean                                       | Panel lateral de la diapositiva (lo abre el admin) |
 | `highlightedQuestionId` | id de pregunta del público o `null`           | Pregunta destacada en la pantalla (ronda de preguntas) |
+| `reconnectNonce`        | número                                        | Al cambiar, todos los clientes rehacen su conexión |
 
 ## REST
 

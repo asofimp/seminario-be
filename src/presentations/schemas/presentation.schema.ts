@@ -48,6 +48,10 @@ export class PresentationState {
   // Pregunta del público que la pantalla muestra en grande (ronda de preguntas).
   @Prop({ type: String, default: null })
   highlightedQuestionId: string | null;
+
+  // Al cambiar, todos los clientes rehacen su conexión (sin recargar la página).
+  @Prop({ default: 0 })
+  reconnectNonce: number;
 }
 export const PresentationStateSchema =
   SchemaFactory.createForClass(PresentationState);
