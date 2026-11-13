@@ -24,6 +24,11 @@ import { SurveysModule } from './surveys/surveys.module';
         dbName: config.get<string>('mongodb.dbName'),
         user: config.get<string>('mongodb.username'),
         pass: config.get<string>('mongodb.password'),
+        // Pool acotado (0.1 de CPU) y tiempos de espera claros.
+        maxPoolSize: 20,
+        minPoolSize: 2,
+        serverSelectionTimeoutMS: 10_000,
+        socketTimeoutMS: 45_000,
         // Diagnóstico: caídas y reconexiones con MongoDB.
         connectionFactory: (connection: Connection) => {
           const logger = new Logger('MongoDB');

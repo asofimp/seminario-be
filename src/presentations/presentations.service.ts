@@ -9,6 +9,7 @@ import { EventEmitter2 } from '@nestjs/event-emitter';
 import { InjectModel } from '@nestjs/mongoose';
 import { randomInt } from 'node:crypto';
 import { Model } from 'mongoose';
+import { withTimeout } from '../common/with-timeout';
 import { Events, PresentationStateChangedEvent } from '../common/events';
 import { SurveyDocument } from '../surveys/schemas/survey.schema';
 import { SurveysService } from '../surveys/surveys.service';
@@ -59,12 +60,14 @@ export class PresentationsService implements OnModuleInit {
     }
 
     try {
-      return await this.presentationModel.create({
+      const created = await this.presentationModel.create({
         title: dto.title,
         survey: survey._id,
         code: await this.generateUniqueCode(),
         practice,
       });
+      this.remember(created);
+      return created;
     } catch (err) {
       if ((err as { code?: number }).code === 11000) {
         const current = await this.findActive();
@@ -76,11 +79,25 @@ export class PresentationsService implements OnModuleInit {
 
   // Presentación principal activa (las prácticas no cuentan). Las creadas antes
   // de existir isActive cuentan como activas hasta que se terminen.
+  private activeCache?: {
+    at: number;
+    value: Promise<PresentationDocument | null>;
+  };
+
   findActive(): Promise<PresentationDocument | null> {
-    return this.presentationModel
-      .findOne({ isActive: { $ne: false }, practice: { $ne: true } })
-      .sort({ createdAt: -1 })
-      .exec();
+    if (this.activeCache && Date.now() - this.activeCache.at < 3000) {
+      return this.activeCache.value;
+    }
+    const value = withTimeout(
+      this.presentationModel
+        .findOne({ isActive: { $ne: false }, practice: { $ne: true } })
+        .sort({ createdAt: -1 })
+        .exec(),
+      'presentación activa',
+    );
+    value.catch(() => (this.activeCache = undefined));
+    this.activeCache = { at: Date.now(), value };
+    return value;
   }
 
   // Cierra la presentación: deja de aceptar votos y libera el cupo de activa.
@@ -97,7 +114,7 @@ export class PresentationsService implements OnModuleInit {
     });
     await presentation.save();
 
-    this.stateCache.delete(presentation.code);
+    this.remember(presentation);
     this.events.emit(Events.PRESENTATION_STATE_CHANGED, {
       code: presentation.code,
       state: presentation.state,
@@ -116,38 +133,45 @@ export class PresentationsService implements OnModuleInit {
     return this.presentationModel.find().sort({ createdAt: -1 }).exec();
   }
 
-  async findByCode(code: string): Promise<PresentationDocument> {
-    const presentation = await this.presentationModel
-      .findOne({ code: code.toUpperCase() })
-      .exec();
-    if (!presentation) {
-      throw new NotFoundException(`Presentation ${code} not found`);
-    }
-    return presentation;
+  // ---- Caché en memoria de presentaciones ----
+  // Con 100+ personas, findByCode se llamaba en cada conexión, voto, pregunta,
+  // cambio de estado y revisión de salud. El servidor es el único que escribe
+  // el estado (una sola instancia), así que se guarda el documento en memoria y
+  // se actualiza al guardar. El TTL corto cubre ediciones hechas fuera del API.
+  // También se comparten las consultas en vuelo: 100 conexiones simultáneas
+  // a una presentación que no está en caché hacen UNA sola consulta.
+  private readonly byCode = new Map<
+    string,
+    { at: number; doc: Promise<PresentationDocument> }
+  >();
+  private static readonly TTL_MS = 15_000;
+
+  findByCode(code: string): Promise<PresentationDocument> {
+    const key = code.toUpperCase();
+    const hit = this.byCode.get(key);
+    if (hit && Date.now() - hit.at < PresentationsService.TTL_MS)
+      return hit.doc;
+    const doc = withTimeout(
+      this.presentationModel.findOne({ code: key }).exec(),
+      `presentación ${key}`,
+    ).then((p) => {
+      if (!p) throw new NotFoundException(`Presentation ${code} not found`);
+      return p;
+    });
+    doc.catch(() => this.byCode.delete(key));
+    this.byCode.set(key, { at: Date.now(), doc });
+    return doc;
   }
 
-  // Solo el estado (consulta mínima), con caché de 2 s: muchas revisiones de
-  // salud de los clientes se resuelven con una sola consulta a MongoDB.
-  private readonly stateCache = new Map<
-    string,
-    { at: number; value: Promise<{ state: unknown; isActive: boolean }> }
-  >();
+  private remember(p: PresentationDocument) {
+    this.byCode.set(p.code, { at: Date.now(), doc: Promise.resolve(p) });
+    this.activeCache = undefined;
+  }
 
-  getState(code: string): Promise<{ state: unknown; isActive: boolean }> {
-    const key = code.toUpperCase();
-    const hit = this.stateCache.get(key);
-    if (hit && Date.now() - hit.at < 2000) return hit.value;
-    const value = this.presentationModel
-      .findOne({ code: key }, { state: 1, isActive: 1 })
-      .lean()
-      .exec()
-      .then((p) => {
-        if (!p) throw new NotFoundException(`Presentation ${code} not found`);
-        return { state: p.state, isActive: p.isActive !== false };
-      });
-    value.catch(() => this.stateCache.delete(key));
-    this.stateCache.set(key, { at: Date.now(), value });
-    return value;
+  // Solo el estado: sale de la caché (sin consultar la base).
+  async getState(code: string): Promise<{ state: unknown; isActive: boolean }> {
+    const p = await this.findByCode(code);
+    return { state: p.state, isActive: p.isActive !== false };
   }
 
   async getSnapshot(code: string): Promise<PresentationSnapshot> {
@@ -174,7 +198,7 @@ export class PresentationsService implements OnModuleInit {
     }
     await presentation.save();
 
-    this.stateCache.delete(presentation.code);
+    this.remember(presentation);
     this.events.emit(Events.PRESENTATION_STATE_CHANGED, {
       code: presentation.code,
       state: presentation.state,

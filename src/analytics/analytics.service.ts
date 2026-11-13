@@ -1,6 +1,7 @@
 import { Injectable, NotFoundException } from '@nestjs/common';
 import { InjectModel } from '@nestjs/mongoose';
 import { Model, Types } from 'mongoose';
+import { withTimeout } from '../common/with-timeout';
 import { PresentationsService } from '../presentations/presentations.service';
 import { Response } from '../responses/schemas/response.schema';
 import { Question, QuestionType } from '../surveys/schemas/survey.schema';
@@ -40,7 +41,25 @@ export class AnalyticsService {
     );
   }
 
-  async questionResults(
+  // Resultados en memoria hasta el siguiente voto de esa pregunta: las
+  // conexiones nuevas (pantalla, panel, celulares) no recalculan nada.
+  private readonly resultsCache = new Map<string, Promise<QuestionResults>>();
+
+  invalidate(code: string, questionId: string) {
+    this.resultsCache.delete(`${code.toUpperCase()}:${questionId}`);
+  }
+
+  questionResults(code: string, questionId: string): Promise<QuestionResults> {
+    const key = `${code.toUpperCase()}:${questionId}`;
+    const hit = this.resultsCache.get(key);
+    if (hit) return hit;
+    const value = this.computeQuestionResults(code, questionId);
+    value.catch(() => this.resultsCache.delete(key));
+    this.resultsCache.set(key, value);
+    return value;
+  }
+
+  private async computeQuestionResults(
     code: string,
     questionId: string,
   ): Promise<QuestionResults> {
@@ -70,7 +89,30 @@ export class AnalyticsService {
           value: { $in: question.options.map((o) => o.value) },
         }
       : { presentation: presentationId, questionId };
-    const totalResponses = await this.responseModel.countDocuments(match);
+    // Una sola consulta: total de respuestas y conteo por opción a la vez.
+    const [facet] = await withTimeout(
+      this.responseModel
+        .aggregate<{
+          total: { n: number }[];
+          counts: { _id: string | number; count: number }[];
+        }>([
+          { $match: match },
+          {
+            $facet: {
+              total: [{ $count: 'n' }],
+              // $unwind trata un valor simple como arreglo de un elemento: sirve
+              // para opción única, múltiple y escala.
+              counts: [
+                { $unwind: '$value' },
+                { $group: { _id: '$value', count: { $sum: 1 } } },
+              ],
+            },
+          },
+        ])
+        .exec(),
+      `resultados ${questionId}`,
+    );
+    const totalResponses = facet?.total[0]?.n ?? 0;
     const base = {
       questionId,
       text: question.text,
@@ -88,16 +130,7 @@ export class AnalyticsService {
       return { ...base, latestAnswers: latest.map((r) => String(r.value)) };
     }
 
-    // $unwind treats scalar values as single-element arrays, so this works for
-    // single, multiple and scale answers alike.
-    const counts = await this.responseModel.aggregate<{
-      _id: string | number;
-      count: number;
-    }>([
-      { $match: match },
-      { $unwind: '$value' },
-      { $group: { _id: '$value', count: { $sum: 1 } } },
-    ]);
+    const counts = facet?.counts ?? [];
     const countBy = new Map(counts.map((c) => [String(c._id), c.count]));
 
     if (question.type === QuestionType.SCALE) {

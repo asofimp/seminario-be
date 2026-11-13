@@ -32,3 +32,6 @@ ResponseSchema.index(
   { presentation: 1, questionId: 1, participantId: 1 },
   { unique: true },
 );
+
+// Resultados por pregunta: filtra por presentación, pregunta y opción vigente.
+ResponseSchema.index({ presentation: 1, questionId: 1, value: 1 });

@@ -1,6 +1,7 @@
 import { Injectable, NotFoundException } from '@nestjs/common';
 import { InjectModel } from '@nestjs/mongoose';
 import { Model, Types } from 'mongoose';
+import { withTimeout } from '../common/with-timeout';
 import { CreateSurveyDto } from './dto/create-survey.dto';
 import { Survey, SurveyDocument } from './schemas/survey.schema';
 
@@ -32,7 +33,10 @@ export class SurveysService {
     const hit = this.cache.get(key);
     if (hit && Date.now() - hit.at < CACHE_TTL_MS) return hit.survey;
     const survey = Types.ObjectId.isValid(id)
-      ? await this.surveyModel.findById(id).exec()
+      ? await withTimeout(
+          this.surveyModel.findById(id).exec(),
+          `encuesta ${key}`,
+        )
       : null;
     if (!survey) {
       throw new NotFoundException(`Survey ${String(id)} not found`);

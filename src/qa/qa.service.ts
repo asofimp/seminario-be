@@ -9,6 +9,7 @@ import { Model, isValidObjectId } from 'mongoose';
 import { Events, QaChangedEvent } from '../common/events';
 import { PresentationsService } from '../presentations/presentations.service';
 import { AudienceView } from '../presentations/schemas/presentation.schema';
+import { withTimeout } from '../common/with-timeout';
 import { AskQuestionDto } from './dto/ask-question.dto';
 import {
   AudienceQuestion,
@@ -60,12 +61,29 @@ export class QaService {
     return question;
   }
 
-  async list(code: string): Promise<AudienceQuestionDocument[]> {
-    const presentation = await this.presentationsService.findByCode(code);
-    return this.questionModel
-      .find({ presentation: presentation._id })
-      .sort({ createdAt: 1 })
-      .exec();
+  // Lista en memoria: cada conexión nueva la pedía (100 conexiones = 100
+  // consultas). Se invalida al preguntar o marcar respondida.
+  private readonly listCache = new Map<string, Promise<AudienceQuestion[]>>();
+
+  list(code: string): Promise<AudienceQuestion[]> {
+    const key = code.toUpperCase();
+    const hit = this.listCache.get(key);
+    if (hit) return hit;
+    const value = this.presentationsService
+      .findByCode(key)
+      .then((presentation) =>
+        withTimeout(
+          this.questionModel
+            .find({ presentation: presentation._id })
+            .sort({ createdAt: 1 })
+            .lean()
+            .exec(),
+          `preguntas ${key}`,
+        ),
+      );
+    value.catch(() => this.listCache.delete(key));
+    this.listCache.set(key, value);
+    return value;
   }
 
   async setAnswered(
@@ -89,6 +107,7 @@ export class QaService {
   }
 
   private emitChanged(code: string) {
+    this.listCache.delete(code.toUpperCase());
     this.events.emit(Events.QA_CHANGED, { code } satisfies QaChangedEvent);
   }
 }

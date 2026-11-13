@@ -30,3 +30,7 @@ export class AudienceQuestion {
 export type AudienceQuestionDocument = HydratedDocument<AudienceQuestion>;
 export const AudienceQuestionSchema =
   SchemaFactory.createForClass(AudienceQuestion);
+
+// Lista ordenada de la ronda y límite de preguntas por participante.
+AudienceQuestionSchema.index({ presentation: 1, createdAt: 1 });
+AudienceQuestionSchema.index({ presentation: 1, participantId: 1 });

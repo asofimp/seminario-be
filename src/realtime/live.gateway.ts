@@ -55,7 +55,18 @@ const room = (code: string, role?: ClientRole) =>
   role ? `${code}:${role}` : code;
 
 // Clients connect with: io(`${API}/live`, { auth: { code, role, adminKey? } })
-@WebSocketGateway({ namespace: 'live', cors: { origin: true } })
+@WebSocketGateway({
+  namespace: 'live',
+  cors: { origin: true },
+  // Con 0.1 de CPU un pico (100 personas entrando/votando a la vez) puede
+  // retrasar los pings: más margen antes de dar la conexión por muerta.
+  pingInterval: 25_000,
+  pingTimeout: 60_000,
+  connectTimeout: 45_000,
+  // Sin compresión por mensaje: ahorra CPU (los mensajes son pequeños).
+  perMessageDeflate: false,
+  httpCompression: false,
+})
 @UseFilters(new WsExceptionFilter())
 @UsePipes(new ValidationPipe({ whitelist: true }))
 export class LiveGateway
@@ -158,6 +169,7 @@ export class LiveGateway
       return this.reject(client, 'Invalid key');
     }
 
+    const tConn = Date.now();
     try {
       const snapshot = await this.presentationsService.getSnapshot(code);
       const normalizedCode = snapshot.presentation.code;
@@ -175,6 +187,12 @@ export class LiveGateway
         snapshot.presentation.state.showResultsToAudience
       ) {
         await this.emitCurrentResults(normalizedCode, client);
+      }
+      const took = Date.now() - tConn;
+      if (took > 2000) {
+        this.logger.warn(
+          `[ws] conexión ${client.id} tardó ${took}ms en recibir la presentación`,
+        );
       }
     } catch (err) {
       // Solo "no existe" es definitivo; cualquier otro error (base de datos,
@@ -254,7 +272,8 @@ export class LiveGateway
 
   // Debounced so a burst of votes produces a single aggregation per window.
   @OnEvent(Events.RESPONSE_SUBMITTED)
-  onResponseSubmitted({ code }: ResponseSubmittedEvent) {
+  onResponseSubmitted({ code, questionId }: ResponseSubmittedEvent) {
+    this.analyticsService.invalidate(code, questionId);
     if (this.pendingResults.has(code)) return;
     this.pendingResults.set(
       code,
