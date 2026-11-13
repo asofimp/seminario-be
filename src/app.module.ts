@@ -7,6 +7,7 @@ import { AppController } from './app.controller';
 import { AppService } from './app.service';
 import configuration from './config/configuration';
 import { PresentationsModule } from './presentations/presentations.module';
+import { QaModule } from './qa/qa.module';
 import { RealtimeModule } from './realtime/realtime.module';
 import { ResponsesModule } from './responses/responses.module';
 import { SurveysModule } from './surveys/surveys.module';
@@ -27,6 +28,7 @@ import { SurveysModule } from './surveys/surveys.module';
     SurveysModule,
     PresentationsModule,
     ResponsesModule,
+    QaModule,
     AnalyticsModule,
     RealtimeModule,
   ],

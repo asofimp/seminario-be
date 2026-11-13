@@ -17,6 +17,10 @@ export class Response {
   @Prop({ required: true })
   participantId: string;
 
+  // Nombre que escribió el participante al unirse.
+  @Prop()
+  participantName?: string;
+
   @Prop({ type: MongooseSchema.Types.Mixed, required: true })
   value: AnswerValue;
 }

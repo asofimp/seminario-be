@@ -8,6 +8,8 @@ export enum AudienceView {
   QUESTION = 'question',
   RESULTS = 'results',
   CLOSED = 'closed',
+  // Ronda de preguntas: el público escribe preguntas de texto.
+  QA = 'qa',
 }
 
 // What the projected general screen shows.
@@ -42,6 +44,10 @@ export class PresentationState {
   // Panel lateral de la diapositiva (ej. definición y analogía): lo abre el admin.
   @Prop({ default: false })
   showSidePanel: boolean;
+
+  // Pregunta del público que la pantalla muestra en grande (ronda de preguntas).
+  @Prop({ type: String, default: null })
+  highlightedQuestionId: string | null;
 }
 export const PresentationStateSchema =
   SchemaFactory.createForClass(PresentationState);

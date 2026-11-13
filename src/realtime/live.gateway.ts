@@ -16,6 +16,7 @@ import { AnalyticsService } from '../analytics/analytics.service';
 import { Events } from '../common/events';
 import type {
   PresentationStateChangedEvent,
+  QaChangedEvent,
   ResponseSubmittedEvent,
 } from '../common/events';
 import { WsExceptionFilter } from '../common/filters/ws-exception.filter';
@@ -23,6 +24,8 @@ import { UpdateStateDto } from '../presentations/dto/update-state.dto';
 import { PresentationsService } from '../presentations/presentations.service';
 import { SubmitResponseDto } from '../responses/dto/submit-response.dto';
 import { ResponsesService } from '../responses/responses.service';
+import { AskQuestionDto } from '../qa/dto/ask-question.dto';
+import { QaService } from '../qa/qa.service';
 
 export type ClientRole = 'audience' | 'screen' | 'admin';
 const ROLES: ClientRole[] = ['audience', 'screen', 'admin'];
@@ -54,6 +57,7 @@ export class LiveGateway implements OnGatewayConnection, OnGatewayDisconnect {
     private readonly presentationsService: PresentationsService,
     private readonly responsesService: ResponsesService,
     private readonly analyticsService: AnalyticsService,
+    private readonly qaService: QaService,
   ) {}
 
   async handleConnection(client: LiveSocket) {
@@ -79,6 +83,7 @@ export class LiveGateway implements OnGatewayConnection, OnGatewayDisconnect {
       ]);
 
       client.emit('presentation:snapshot', snapshot);
+      client.emit('qa:update', await this.qaService.list(normalizedCode));
       await this.broadcastParticipants(normalizedCode);
       if (
         role !== 'audience' ||
@@ -104,6 +109,23 @@ export class LiveGateway implements OnGatewayConnection, OnGatewayDisconnect {
   ) {
     await this.responsesService.submit(client.data.code, dto);
     return { ok: true };
+  }
+
+  @SubscribeMessage('audience:ask')
+  async onAsk(
+    @ConnectedSocket() client: LiveSocket,
+    @MessageBody() dto: AskQuestionDto,
+  ) {
+    await this.qaService.ask(client.data.code, dto);
+    return { ok: true };
+  }
+
+  // Ronda de preguntas: todos reciben la lista completa cuando cambia.
+  @OnEvent(Events.QA_CHANGED)
+  async onQaChanged({ code }: QaChangedEvent) {
+    this.server
+      .to(room(code))
+      .emit('qa:update', await this.qaService.list(code));
   }
 
   @SubscribeMessage('admin:update-state')

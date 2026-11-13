@@ -39,4 +39,9 @@ export class UpdateStateDto {
   @IsOptional()
   @IsBoolean()
   showSidePanel?: boolean;
+
+  @IsOptional()
+  @ValidateIf((dto: UpdateStateDto) => dto.highlightedQuestionId !== null)
+  @IsMongoId()
+  highlightedQuestionId?: string | null;
 }

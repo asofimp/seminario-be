@@ -34,13 +34,14 @@ Flujo: cuando el admin cambia el estado o llega un voto, el servicio guarda en M
 
 | Campo                   | Valores                                       | Para qué sirve                          |
 | ----------------------- | --------------------------------------------- | --------------------------------------- |
-| `audienceView`          | `waiting` · `question` · `results` · `closed` | Lo que ve el celular del participante   |
+| `audienceView`          | `waiting` · `question` · `results` · `closed` · `qa` | Lo que ve el celular del participante   |
 | `screenView`            | `lobby` · `question` · `results` · `summary`  | Lo que muestra la pantalla proyectada   |
 | `currentQuestionId`     | id de pregunta o `null`                       | Pregunta activa                         |
 | `acceptingResponses`    | boolean                                       | Abre o cierra la votación               |
 | `showResultsToAudience` | boolean                                       | Si la audiencia también recibe gráficos |
 | `slideIndex`            | número ≥ 0                                    | Diapositiva de la pantalla proyectada   |
 | `showSidePanel`         | boolean                                       | Panel lateral de la diapositiva (lo abre el admin) |
+| `highlightedQuestionId` | id de pregunta del público o `null`           | Pregunta destacada en la pantalla (ronda de preguntas) |
 
 ## REST
 
@@ -60,6 +61,9 @@ Las rutas marcadas con 🔒 requieren el header `x-admin-key`.
 | POST   | `/api/presentations/:code/responses`       |     | Votar `{ participantId, questionId, value }`  |
 | GET    | `/api/presentations/:code/results`         |     | Resultados de todas las preguntas             |
 | GET    | `/api/presentations/:code/results/:qId`    |     | Resultados de una pregunta                    |
+| POST   | `/api/presentations/:code/qa`              |     | Ronda de preguntas: enviar `{ participantId, participantName, text }` (solo con `audienceView: qa`) |
+| GET    | `/api/presentations/:code/qa`              |     | Preguntas del público                         |
+| PATCH  | `/api/presentations/:code/qa/:id`          | 🔒  | Marcar respondida `{ answered }`              |
 
 `value` según el tipo de pregunta: `single` → `"opcion"`, `multiple` → `["a","b"]`, `scale` → `4`, `text` → `"texto"`.
 `participantId` lo genera el frontend (por ejemplo un UUID guardado en `localStorage`); volver a votar reemplaza el voto anterior.

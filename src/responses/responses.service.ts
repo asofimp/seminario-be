@@ -52,7 +52,14 @@ export class ResponsesService {
           questionId: dto.questionId,
           participantId: dto.participantId,
         },
-        { $set: { value } },
+        {
+          $set: {
+            value,
+            ...(dto.participantName && {
+              participantName: dto.participantName.trim(),
+            }),
+          },
+        },
         { upsert: true, new: true },
       )
       .exec();
