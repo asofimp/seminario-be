@@ -1,4 +1,10 @@
-import { Logger, UseFilters, UsePipes, ValidationPipe } from '@nestjs/common';
+import {
+  Logger,
+  NotFoundException,
+  UseFilters,
+  UsePipes,
+  ValidationPipe,
+} from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { OnEvent } from '@nestjs/event-emitter';
 import {
@@ -92,8 +98,15 @@ export class LiveGateway implements OnGatewayConnection, OnGatewayDisconnect {
       ) {
         await this.emitCurrentResults(normalizedCode, client);
       }
-    } catch {
-      this.reject(client, `Presentation ${code} not found`);
+    } catch (err) {
+      // Solo "no existe" es definitivo; cualquier otro error (base de datos,
+      // reinicio) es temporal y el cliente vuelve a intentar solo.
+      if (err instanceof NotFoundException) {
+        this.reject(client, `Presentation ${code} not found`);
+      } else {
+        this.logger.warn(`Connection for ${code} failed: ${String(err)}`);
+        this.reject(client, 'Servidor no disponible, reintentando');
+      }
     }
   }
 
