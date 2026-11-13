@@ -1,3 +1,5 @@
+import { PRESENTER_KEYS } from './presenter-keys';
+
 export default () => ({
   port: parseInt(process.env.PORT ?? '3000', 10),
   mongodb: {
@@ -7,5 +9,7 @@ export default () => ({
     password: process.env.MONGODB_PASSWORD || undefined,
   },
   adminApiKey: process.env.ADMIN_API_KEY ?? 'change-me',
+  // Claves de los presentadores por fase (constante, ver presenter-keys.ts).
+  presenterKeys: PRESENTER_KEYS,
   corsOrigin: process.env.CORS_ORIGIN ?? '*',
 });

@@ -3,6 +3,7 @@ import { ConfigModule, ConfigService } from '@nestjs/config';
 import { EventEmitterModule } from '@nestjs/event-emitter';
 import { MongooseModule } from '@nestjs/mongoose';
 import { AnalyticsModule } from './analytics/analytics.module';
+import { AuthModule } from './auth/auth.module';
 import { AppController } from './app.controller';
 import { AppService } from './app.service';
 import configuration from './config/configuration';
@@ -29,6 +30,7 @@ import { SurveysModule } from './surveys/surveys.module';
     PresentationsModule,
     ResponsesModule,
     QaModule,
+    AuthModule,
     AnalyticsModule,
     RealtimeModule,
   ],

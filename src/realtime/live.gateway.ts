@@ -20,6 +20,7 @@ import type {
   ResponseSubmittedEvent,
 } from '../common/events';
 import { WsExceptionFilter } from '../common/filters/ws-exception.filter';
+import { resolveControlKey } from '../common/guards/control-access';
 import { UpdateStateDto } from '../presentations/dto/update-state.dto';
 import { PresentationsService } from '../presentations/presentations.service';
 import { SubmitResponseDto } from '../responses/dto/submit-response.dto';
@@ -69,8 +70,8 @@ export class LiveGateway implements OnGatewayConnection, OnGatewayDisconnect {
     if (!code || !ROLES.includes(role as ClientRole)) {
       return this.reject(client, 'Missing or invalid code/role');
     }
-    if (role === 'admin' && adminKey !== this.config.get('adminApiKey')) {
-      return this.reject(client, 'Invalid admin key');
+    if (role === 'admin' && !resolveControlKey(this.config, adminKey)) {
+      return this.reject(client, 'Invalid key');
     }
 
     try {

@@ -7,7 +7,7 @@ import {
   Post,
   UseGuards,
 } from '@nestjs/common';
-import { AdminKeyGuard } from '../common/guards/admin-key.guard';
+import { ControlKeyGuard } from '../common/guards/control-key.guard';
 import { AskQuestionDto } from './dto/ask-question.dto';
 import { UpdateAudienceQuestionDto } from './dto/update-audience-question.dto';
 import { QaService } from './qa.service';
@@ -27,7 +27,7 @@ export class QaController {
   }
 
   @Patch(':id')
-  @UseGuards(AdminKeyGuard)
+  @UseGuards(ControlKeyGuard)
   update(
     @Param('code') code: string,
     @Param('id') id: string,

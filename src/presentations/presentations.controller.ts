@@ -8,6 +8,7 @@ import {
   UseGuards,
 } from '@nestjs/common';
 import { AdminKeyGuard } from '../common/guards/admin-key.guard';
+import { ControlKeyGuard } from '../common/guards/control-key.guard';
 import { CreatePresentationDto } from './dto/create-presentation.dto';
 import { UpdateStateDto } from './dto/update-state.dto';
 import { PresentationsService } from './presentations.service';
@@ -43,25 +44,25 @@ export class PresentationsController {
   }
 
   @Patch(':code/state')
-  @UseGuards(AdminKeyGuard)
+  @UseGuards(ControlKeyGuard)
   updateState(@Param('code') code: string, @Body() dto: UpdateStateDto) {
     return this.presentationsService.updateState(code, dto);
   }
 
   @Post(':code/next')
-  @UseGuards(AdminKeyGuard)
+  @UseGuards(ControlKeyGuard)
   next(@Param('code') code: string) {
     return this.presentationsService.step(code, 1);
   }
 
   @Post(':code/end')
-  @UseGuards(AdminKeyGuard)
+  @UseGuards(ControlKeyGuard)
   end(@Param('code') code: string) {
     return this.presentationsService.end(code);
   }
 
   @Post(':code/prev')
-  @UseGuards(AdminKeyGuard)
+  @UseGuards(ControlKeyGuard)
   prev(@Param('code') code: string) {
     return this.presentationsService.step(code, -1);
   }

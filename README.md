@@ -45,7 +45,7 @@ Flujo: cuando el admin cambia el estado o llega un voto, el servicio guarda en M
 
 ## REST
 
-Las rutas marcadas con 🔒 requieren el header `x-admin-key`.
+Las rutas marcadas con 🔒 requieren el header `x-admin-key` con la clave de admin (`ADMIN_API_KEY`). Las marcadas con 🎛 aceptan también la clave de un presentador (`src/config/presenter-keys.ts`): sirven para manejar la presentación, no para administrarla.
 
 | Método | Ruta                                       |     | Descripción                                   |
 | ------ | ------------------------------------------ | --- | --------------------------------------------- |
@@ -56,14 +56,15 @@ Las rutas marcadas con 🔒 requieren el header `x-admin-key`.
 | POST   | `/api/presentations`                       | 🔒  | Crear sala `{ title, surveyId }` → genera `code` |
 | GET    | `/api/presentations`                       | 🔒  | Listar salas                                  |
 | GET    | `/api/presentations/:code`                 |     | Estado + encuesta                             |
-| PATCH  | `/api/presentations/:code/state`           | 🔒  | Cambiar estado (parcial)                      |
-| POST   | `/api/presentations/:code/next` · `/prev`  | 🔒  | Ir a la pregunta siguiente / anterior y abrirla |
+| PATCH  | `/api/presentations/:code/state`           | 🎛  | Cambiar estado (parcial)                      |
+| POST   | `/api/presentations/:code/next` · `/prev`  | 🎛  | Ir a la pregunta siguiente / anterior y abrirla |
 | POST   | `/api/presentations/:code/responses`       |     | Votar `{ participantId, questionId, value }`  |
 | GET    | `/api/presentations/:code/results`         |     | Resultados de todas las preguntas             |
 | GET    | `/api/presentations/:code/results/:qId`    |     | Resultados de una pregunta                    |
+| POST   | `/api/auth/remote`                         |     | Control remoto: `{ key }` → `{ role: "admin" }` o `{ role: "presenter", phase }` |
 | POST   | `/api/presentations/:code/qa`              |     | Ronda de preguntas: enviar `{ participantId, participantName, text }` (solo con `audienceView: qa`) |
 | GET    | `/api/presentations/:code/qa`              |     | Preguntas del público                         |
-| PATCH  | `/api/presentations/:code/qa/:id`          | 🔒  | Marcar respondida `{ answered }`              |
+| PATCH  | `/api/presentations/:code/qa/:id`          | 🎛  | Marcar respondida `{ answered }`              |
 
 `value` según el tipo de pregunta: `single` → `"opcion"`, `multiple` → `["a","b"]`, `scale` → `4`, `text` → `"texto"`.
 `participantId` lo genera el frontend (por ejemplo un UUID guardado en `localStorage`); volver a votar reemplaza el voto anterior.
