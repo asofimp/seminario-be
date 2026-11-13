@@ -77,24 +77,17 @@
       ]
     },
     {
-      "text": "Si hoy su agente de IA fallara, ¿podrían dar una alerta en 24 horas, con evidencia?",
+      "text": "¿Te ha llegado un mensaje falso o un video que parecía real y no lo era?",
+      "description": "Por ejemplo, un mensaje que te pide los datos de tu cuenta, o una foto o video falsos.",
       "type": "single",
       "options": [
         {
-          "value": "a",
-          "label": "Sí, con evidencia"
+          "value": "si",
+          "label": "Sí"
         },
         {
-          "value": "b",
-          "label": "Sí, pero sin evidencia"
-        },
-        {
-          "value": "c",
+          "value": "no",
           "label": "No"
-        },
-        {
-          "value": "d",
-          "label": "No estoy seguro"
         }
       ]
     },

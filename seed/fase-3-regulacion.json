@@ -1,15 +1,20 @@
 {
   "title": "Fase 3 · Regulación de la IA en la ciberseguridad",
-  "description": "Votación de context/Regulacion_de_la_IA_en_la_ciberseguridad.md (pregunta final).",
+  "description": "Votación de context/presentacion regulacion ciberseguridad ia.md (diapositiva Para empezar).",
   "questions": [
     {
-      "text": "Si hoy su agente de IA fallara, ¿podrían dar una alerta en 24 horas, con evidencia?",
+      "text": "¿Te ha llegado un mensaje falso o un video que parecía real y no lo era?",
+      "description": "Por ejemplo, un mensaje que te pide los datos de tu cuenta, o una foto o video falsos.",
       "type": "single",
       "options": [
-        { "value": "a", "label": "Sí, con evidencia" },
-        { "value": "b", "label": "Sí, pero sin evidencia" },
-        { "value": "c", "label": "No" },
-        { "value": "d", "label": "No estoy seguro" }
+        {
+          "value": "si",
+          "label": "Sí"
+        },
+        {
+          "value": "no",
+          "label": "No"
+        }
       ]
     }
   ]
