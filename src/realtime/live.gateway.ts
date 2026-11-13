@@ -1,6 +1,7 @@
 import {
   Logger,
   NotFoundException,
+  OnModuleDestroy,
   UseFilters,
   UsePipes,
   ValidationPipe,
@@ -12,11 +13,13 @@ import {
   MessageBody,
   OnGatewayConnection,
   OnGatewayDisconnect,
+  OnGatewayInit,
   SubscribeMessage,
   WebSocketGateway,
   WebSocketServer,
   WsException,
 } from '@nestjs/websockets';
+import { monitorEventLoopDelay } from 'node:perf_hooks';
 import { Namespace, Socket } from 'socket.io';
 import { AnalyticsService } from '../analytics/analytics.service';
 import { Events } from '../common/events';
@@ -55,11 +58,21 @@ const room = (code: string, role?: ClientRole) =>
 @WebSocketGateway({ namespace: 'live', cors: { origin: true } })
 @UseFilters(new WsExceptionFilter())
 @UsePipes(new ValidationPipe({ whitelist: true }))
-export class LiveGateway implements OnGatewayConnection, OnGatewayDisconnect {
+export class LiveGateway
+  implements
+    OnGatewayInit,
+    OnGatewayConnection,
+    OnGatewayDisconnect,
+    OnModuleDestroy
+{
   @WebSocketServer()
   private readonly server: Namespace;
 
   private readonly logger = new Logger(LiveGateway.name);
+  // Logs de diagnóstico de conexiones (desactivar con LOG_WS=0).
+  private readonly debug = process.env.LOG_WS !== '0';
+  private readonly loopDelay = monitorEventLoopDelay({ resolution: 20 });
+  private statsTimer?: NodeJS.Timeout;
   private readonly pendingResults = new Map<string, NodeJS.Timeout>();
 
   constructor(
@@ -70,11 +83,73 @@ export class LiveGateway implements OnGatewayConnection, OnGatewayDisconnect {
     private readonly qaService: QaService,
   ) {}
 
+  afterInit(namespace: Namespace) {
+    // Errores del motor antes de que exista el socket (handshake, CORS, etc.).
+    namespace.server.engine.on(
+      'connection_error',
+      (err: {
+        code: number;
+        message: string;
+        context?: unknown;
+        req?: { url?: string };
+      }) =>
+        this.logger.warn(
+          `[ws] error de conexión del motor: code=${err.code} ${err.message} url=${err.req?.url ?? '-'} ${err.context ? JSON.stringify(err.context) : ''}`,
+        ),
+    );
+
+    // Cada 60 s: conexiones abiertas, retraso del event loop y memoria.
+    // Si el retraso es alto, el proceso se queda sin CPU (0.1) y los pings no
+    // alcanzan a responderse: las conexiones se caen por "ping timeout".
+    this.loopDelay.enable();
+    this.statsTimer = setInterval(() => {
+      const ms = (ns: number) => (ns / 1e6).toFixed(0);
+      const mem = process.memoryUsage();
+      this.logger.log(
+        `[ws] estado: sockets=${namespace.sockets.size} event-loop p50=${ms(this.loopDelay.percentile(50))}ms p99=${ms(this.loopDelay.percentile(99))}ms max=${ms(this.loopDelay.max)}ms rss=${(mem.rss / 1048576).toFixed(0)}MB`,
+      );
+      this.loopDelay.reset();
+    }, 60_000);
+    this.statsTimer.unref();
+  }
+
+  onModuleDestroy() {
+    clearInterval(this.statsTimer);
+    this.loopDelay.disable();
+  }
+
   async handleConnection(client: LiveSocket) {
     const { code, role, adminKey } = client.handshake.auth as Record<
       string,
       string
     >;
+
+    if (this.debug) {
+      const ip =
+        (
+          client.handshake.headers['x-forwarded-for'] as string | undefined
+        )?.split(',')[0] ?? client.handshake.address;
+      const t0 = Date.now();
+      this.logger.log(
+        `[ws] + ${client.id} code=${code} role=${role} transport=${client.conn.transport.name} ip=${ip}`,
+      );
+      client.conn.once('upgrade', (t: { name: string }) =>
+        this.logger.log(`[ws] ↑ ${client.id} transporte mejorado a ${t.name}`),
+      );
+      client.on('disconnect', (reason: string, description?: unknown) => {
+        const desc =
+          description instanceof Error
+            ? description.message
+            : description &&
+                typeof description === 'object' &&
+                'description' in description
+              ? String((description as { description: unknown }).description)
+              : '';
+        this.logger.log(
+          `[ws] - ${client.id} code=${code} role=${role} motivo=${reason}${desc ? ` (${desc})` : ''} duró=${((Date.now() - t0) / 1000).toFixed(0)}s`,
+        );
+      });
+    }
 
     if (!code || !ROLES.includes(role as ClientRole)) {
       return this.reject(client, 'Missing or invalid code/role');
@@ -236,6 +311,9 @@ export class LiveGateway implements OnGatewayConnection, OnGatewayDisconnect {
   }
 
   private reject(client: LiveSocket, message: string) {
+    if (this.debug) {
+      this.logger.warn(`[ws] ✕ ${client.id} rechazado: ${message}`);
+    }
     client.emit('exception', { status: 'error', message });
     client.disconnect(true);
   }

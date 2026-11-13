@@ -1,7 +1,8 @@
-import { Module } from '@nestjs/common';
+import { Logger, Module } from '@nestjs/common';
 import { ConfigModule, ConfigService } from '@nestjs/config';
 import { EventEmitterModule } from '@nestjs/event-emitter';
 import { MongooseModule } from '@nestjs/mongoose';
+import type { Connection } from 'mongoose';
 import { AnalyticsModule } from './analytics/analytics.module';
 import { AuthModule } from './auth/auth.module';
 import { AppController } from './app.controller';
@@ -23,6 +24,16 @@ import { SurveysModule } from './surveys/surveys.module';
         dbName: config.get<string>('mongodb.dbName'),
         user: config.get<string>('mongodb.username'),
         pass: config.get<string>('mongodb.password'),
+        // Diagnóstico: caídas y reconexiones con MongoDB.
+        connectionFactory: (connection: Connection) => {
+          const logger = new Logger('MongoDB');
+          connection.on('disconnected', () => logger.warn('desconectado'));
+          connection.on('reconnected', () => logger.log('reconectado'));
+          connection.on('error', (err: Error) =>
+            logger.error(`error: ${err.message}`),
+          );
+          return connection;
+        },
       }),
     }),
     EventEmitterModule.forRoot(),
