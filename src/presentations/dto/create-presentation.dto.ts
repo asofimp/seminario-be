@@ -1,4 +1,10 @@
-import { IsMongoId, IsNotEmpty, IsString } from 'class-validator';
+import {
+  IsBoolean,
+  IsMongoId,
+  IsNotEmpty,
+  IsOptional,
+  IsString,
+} from 'class-validator';
 
 export class CreatePresentationDto {
   @IsString()
@@ -7,4 +13,9 @@ export class CreatePresentationDto {
 
   @IsMongoId()
   surveyId: string;
+
+  // Práctica: se pueden tener varias activas a la vez.
+  @IsOptional()
+  @IsBoolean()
+  practice?: boolean;
 }

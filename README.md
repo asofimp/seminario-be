@@ -45,16 +45,16 @@ Flujo: cuando el admin cambia el estado o llega un voto, el servicio guarda en M
 
 ## REST
 
-Las rutas marcadas con 🔒 requieren el header `x-admin-key` con la clave de admin (`ADMIN_API_KEY`). Las marcadas con 🎛 aceptan también la clave de un presentador (`src/config/presenter-keys.ts`): sirven para manejar la presentación, no para administrarla.
+Las rutas marcadas con 🔒 requieren el header `x-admin-key` con la clave de admin (`ADMIN_API_KEY`). Las marcadas con 🎛 aceptan también la clave de un presentador (`src/config/presenter-keys.ts`): con ellas se entra al panel `/admin` y al control remoto para crear y manejar presentaciones, pero no se pueden crear, editar ni borrar encuestas.
 
 | Método | Ruta                                       |     | Descripción                                   |
 | ------ | ------------------------------------------ | --- | --------------------------------------------- |
 | POST   | `/api/surveys`                             | 🔒  | Crear encuesta                                |
-| GET    | `/api/surveys` · `/api/surveys/:id`        | 🔒  | Listar / obtener                              |
+| GET    | `/api/surveys` · `/api/surveys/:id`        | 🎛  | Listar / obtener                              |
 | PUT    | `/api/surveys/:id`                         | 🔒  | Reemplazar                                    |
 | DELETE | `/api/surveys/:id`                         | 🔒  | Eliminar                                      |
-| POST   | `/api/presentations`                       | 🔒  | Crear sala `{ title, surveyId }` → genera `code` |
-| GET    | `/api/presentations`                       | 🔒  | Listar salas                                  |
+| POST   | `/api/presentations`                       | 🎛  | Crear sala `{ title, surveyId }` → genera `code` |
+| GET    | `/api/presentations`                       | 🎛  | Listar salas                                  |
 | GET    | `/api/presentations/:code`                 |     | Estado + encuesta                             |
 | PATCH  | `/api/presentations/:code/state`           | 🎛  | Cambiar estado (parcial)                      |
 | POST   | `/api/presentations/:code/next` · `/prev`  | 🎛  | Ir a la pregunta siguiente / anterior y abrirla |

@@ -2,6 +2,7 @@ import {
   BadRequestException,
   ConflictException,
   Injectable,
+  OnModuleInit,
   NotFoundException,
 } from '@nestjs/common';
 import { EventEmitter2 } from '@nestjs/event-emitter';
@@ -29,7 +30,7 @@ export interface PresentationSnapshot {
 }
 
 @Injectable()
-export class PresentationsService {
+export class PresentationsService implements OnModuleInit {
   constructor(
     @InjectModel(Presentation.name)
     private readonly presentationModel: Model<Presentation>,
@@ -39,16 +40,30 @@ export class PresentationsService {
 
   // Solo una presentación activa a la vez: hay que terminarla para crear otra.
   // El índice único parcial sobre isActive cubre las carreras entre peticiones.
+  // El índice viejo (una activa en total) bloquearía las prácticas: se quita.
+  async onModuleInit() {
+    try {
+      await this.presentationModel.collection.dropIndex('isActive_1');
+    } catch {
+      // ya no existe
+    }
+    await this.presentationModel.createIndexes();
+  }
+
   async create(dto: CreatePresentationDto): Promise<PresentationDocument> {
     const survey = await this.surveysService.findOne(dto.surveyId);
-    const active = await this.findActive();
-    if (active) throw this.activeConflict(active.code);
+    const practice = dto.practice === true;
+    if (!practice) {
+      const active = await this.findActive();
+      if (active) throw this.activeConflict(active.code);
+    }
 
     try {
       return await this.presentationModel.create({
         title: dto.title,
         survey: survey._id,
         code: await this.generateUniqueCode(),
+        practice,
       });
     } catch (err) {
       if ((err as { code?: number }).code === 11000) {
@@ -59,11 +74,11 @@ export class PresentationsService {
     }
   }
 
-  // Las presentaciones creadas antes de existir isActive cuentan como activas
-  // hasta que se terminen.
+  // Presentación principal activa (las prácticas no cuentan). Las creadas antes
+  // de existir isActive cuentan como activas hasta que se terminen.
   findActive(): Promise<PresentationDocument | null> {
     return this.presentationModel
-      .findOne({ isActive: { $ne: false } })
+      .findOne({ isActive: { $ne: false }, practice: { $ne: true } })
       .sort({ createdAt: -1 })
       .exec();
   }

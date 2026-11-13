@@ -72,12 +72,21 @@ export class Presentation {
 
   @Prop({ type: Date, default: null })
   endedAt: Date | null;
+
+  // Práctica (ensayo de una fase): no cuenta para el límite de una activa.
+  @Prop({ default: false })
+  practice: boolean;
 }
 
 export type PresentationDocument = HydratedDocument<Presentation>;
 export const PresentationSchema = SchemaFactory.createForClass(Presentation);
 
 PresentationSchema.index(
-  { isActive: 1 },
-  { unique: true, partialFilterExpression: { isActive: true } },
+  { isActive: 1, practice: 1 },
+  {
+    name: 'one_active_main',
+    unique: true,
+    // Solo una presentación principal activa; las prácticas no tienen límite.
+    partialFilterExpression: { isActive: true, practice: false },
+  },
 );
