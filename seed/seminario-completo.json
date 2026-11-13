@@ -3,38 +3,32 @@
   "description": "Presentación completa: fase 1 (agentes de IA, preguntas 1–3), fase 2 (incidentes, 4), fase 3 (regulación, 5) y fase 4 (concientización, 6–9).",
   "questions": [
     {
-      "text": "¿Has usado alguna herramienta de IA?",
+      "text": "¿Has utilizado una IA para resolver algo?",
+      "description": "Hacerle una pregunta y recibir una respuesta.",
       "type": "single",
       "options": [
         {
-          "value": "a",
-          "label": "Sí, a diario"
+          "value": "si",
+          "label": "Sí"
         },
         {
-          "value": "b",
-          "label": "Sí, de vez en cuando"
-        },
-        {
-          "value": "c",
-          "label": "Nunca"
+          "value": "no",
+          "label": "No"
         }
       ]
     },
     {
       "text": "¿Has usado un agente de IA?",
+      "description": "No solo para preguntarle algo, sino delegarle una tarea para que la ejecute por su cuenta.",
       "type": "single",
       "options": [
         {
-          "value": "a",
+          "value": "si",
           "label": "Sí"
         },
         {
-          "value": "b",
+          "value": "no",
           "label": "No"
-        },
-        {
-          "value": "c",
-          "label": "No estoy seguro"
         }
       ]
     },

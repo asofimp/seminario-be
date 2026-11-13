@@ -58,7 +58,18 @@ export class AnalyticsService {
     question: Question,
   ): Promise<QuestionResults> {
     const questionId = question._id.toString();
-    const match = { presentation: presentationId, questionId };
+    const hasOptions =
+      question.type === QuestionType.SINGLE ||
+      question.type === QuestionType.MULTIPLE;
+    // En preguntas de opciones solo cuentan los votos de opciones vigentes
+    // (si se editan las opciones, los votos viejos no distorsionan el total).
+    const match = hasOptions
+      ? {
+          presentation: presentationId,
+          questionId,
+          value: { $in: question.options.map((o) => o.value) },
+        }
+      : { presentation: presentationId, questionId };
     const totalResponses = await this.responseModel.countDocuments(match);
     const base = {
       questionId,

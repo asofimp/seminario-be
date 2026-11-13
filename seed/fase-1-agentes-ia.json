@@ -3,31 +3,55 @@
   "description": "",
   "questions": [
     {
-      "text": "¿Has usado alguna herramienta de IA?",
+      "text": "¿Has utilizado una IA para resolver algo?",
+      "description": "Hacerle una pregunta y recibir una respuesta.",
       "type": "single",
       "options": [
-        { "value": "a", "label": "Sí, a diario" },
-        { "value": "b", "label": "Sí, de vez en cuando" },
-        { "value": "c", "label": "Nunca" }
+        {
+          "value": "si",
+          "label": "Sí"
+        },
+        {
+          "value": "no",
+          "label": "No"
+        }
       ]
     },
     {
       "text": "¿Has usado un agente de IA?",
+      "description": "No solo para preguntarle algo, sino delegarle una tarea para que la ejecute por su cuenta.",
       "type": "single",
       "options": [
-        { "value": "a", "label": "Sí" },
-        { "value": "b", "label": "No" },
-        { "value": "c", "label": "No estoy seguro" }
+        {
+          "value": "si",
+          "label": "Sí"
+        },
+        {
+          "value": "no",
+          "label": "No"
+        }
       ]
     },
     {
       "text": "Su empresa ya tiene un agente de IA de ciberseguridad. ¿Cuánta autonomía le darían?",
       "type": "single",
       "options": [
-        { "value": "a", "label": "Que solo recomiende y yo apruebo" },
-        { "value": "b", "label": "Que actúe dentro de límites y yo vigile" },
-        { "value": "c", "label": "Que decida y ejecute solo" },
-        { "value": "d", "label": "Ninguna: todavía no confío" }
+        {
+          "value": "a",
+          "label": "Que solo recomiende y yo apruebo"
+        },
+        {
+          "value": "b",
+          "label": "Que actúe dentro de límites y yo vigile"
+        },
+        {
+          "value": "c",
+          "label": "Que decida y ejecute solo"
+        },
+        {
+          "value": "d",
+          "label": "Ninguna: todavía no confío"
+        }
       ]
     }
   ]

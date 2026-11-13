@@ -27,6 +27,10 @@ export class QuestionDto {
   @IsNotEmpty()
   text: string;
 
+  @IsOptional()
+  @IsString()
+  description?: string;
+
   @IsEnum(QuestionType)
   type: QuestionType;
 

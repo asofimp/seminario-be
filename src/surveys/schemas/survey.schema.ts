@@ -26,6 +26,10 @@ export class Question {
   @Prop({ required: true })
   text: string;
 
+  // Aclaración opcional que se muestra bajo la pregunta.
+  @Prop()
+  description?: string;
+
   @Prop({ required: true, enum: QuestionType })
   type: QuestionType;
 
