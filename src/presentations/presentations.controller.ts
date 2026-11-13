@@ -7,7 +7,6 @@ import {
   Post,
   UseGuards,
 } from '@nestjs/common';
-import { AdminKeyGuard } from '../common/guards/admin-key.guard';
 import { ControlKeyGuard } from '../common/guards/control-key.guard';
 import { CreatePresentationDto } from './dto/create-presentation.dto';
 import { UpdateStateDto } from './dto/update-state.dto';
@@ -18,13 +17,13 @@ export class PresentationsController {
   constructor(private readonly presentationsService: PresentationsService) {}
 
   @Post()
-  @UseGuards(AdminKeyGuard)
+  @UseGuards(ControlKeyGuard)
   create(@Body() dto: CreatePresentationDto) {
     return this.presentationsService.create(dto);
   }
 
   @Get()
-  @UseGuards(AdminKeyGuard)
+  @UseGuards(ControlKeyGuard)
   findAll() {
     return this.presentationsService.findAll();
   }
