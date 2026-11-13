@@ -97,6 +97,7 @@ export class PresentationsService implements OnModuleInit {
     });
     await presentation.save();
 
+    this.stateCache.delete(presentation.code);
     this.events.emit(Events.PRESENTATION_STATE_CHANGED, {
       code: presentation.code,
       state: presentation.state,
@@ -125,6 +126,30 @@ export class PresentationsService implements OnModuleInit {
     return presentation;
   }
 
+  // Solo el estado (consulta mínima), con caché de 2 s: muchas revisiones de
+  // salud de los clientes se resuelven con una sola consulta a MongoDB.
+  private readonly stateCache = new Map<
+    string,
+    { at: number; value: Promise<{ state: unknown; isActive: boolean }> }
+  >();
+
+  getState(code: string): Promise<{ state: unknown; isActive: boolean }> {
+    const key = code.toUpperCase();
+    const hit = this.stateCache.get(key);
+    if (hit && Date.now() - hit.at < 2000) return hit.value;
+    const value = this.presentationModel
+      .findOne({ code: key }, { state: 1, isActive: 1 })
+      .lean()
+      .exec()
+      .then((p) => {
+        if (!p) throw new NotFoundException(`Presentation ${code} not found`);
+        return { state: p.state, isActive: p.isActive !== false };
+      });
+    value.catch(() => this.stateCache.delete(key));
+    this.stateCache.set(key, { at: Date.now(), value });
+    return value;
+  }
+
   async getSnapshot(code: string): Promise<PresentationSnapshot> {
     const presentation = await this.findByCode(code);
     const survey = await this.surveysService.findOne(presentation.survey);
@@ -149,6 +174,7 @@ export class PresentationsService implements OnModuleInit {
     }
     await presentation.save();
 
+    this.stateCache.delete(presentation.code);
     this.events.emit(Events.PRESENTATION_STATE_CHANGED, {
       code: presentation.code,
       state: presentation.state,

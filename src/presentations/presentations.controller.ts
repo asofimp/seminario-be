@@ -37,6 +37,12 @@ export class PresentationsController {
     };
   }
 
+  // Público y ligero: lo usan los clientes para comprobar que siguen al día.
+  @Get(':code/state')
+  getState(@Param('code') code: string) {
+    return this.presentationsService.getState(code);
+  }
+
   @Get(':code')
   getSnapshot(@Param('code') code: string) {
     return this.presentationsService.getSnapshot(code);

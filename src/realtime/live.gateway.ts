@@ -43,7 +43,10 @@ interface ClientData {
 }
 type LiveSocket = Socket<any, any, any, ClientData>;
 
-const RESULTS_DEBOUNCE_MS = 250;
+// Con 0.1 de CPU: los resultados se recalculan como máximo 1 vez por segundo y
+// el contador de conectados se agrupa en ventanas de 1 s.
+const RESULTS_DEBOUNCE_MS = 1000;
+const PARTICIPANTS_DEBOUNCE_MS = 1000;
 
 const room = (code: string, role?: ClientRole) =>
   role ? `${code}:${role}` : code;
@@ -91,7 +94,7 @@ export class LiveGateway implements OnGatewayConnection, OnGatewayDisconnect {
 
       client.emit('presentation:snapshot', snapshot);
       client.emit('qa:update', await this.qaService.list(normalizedCode));
-      await this.broadcastParticipants(normalizedCode);
+      this.broadcastParticipants(normalizedCode);
       if (
         role !== 'audience' ||
         snapshot.presentation.state.showResultsToAudience
@@ -112,7 +115,7 @@ export class LiveGateway implements OnGatewayConnection, OnGatewayDisconnect {
 
   async handleDisconnect(client: LiveSocket) {
     if (client.data?.code) {
-      await this.broadcastParticipants(client.data.code);
+      this.broadcastParticipants(client.data.code);
     }
   }
 
@@ -207,11 +210,23 @@ export class LiveGateway implements OnGatewayConnection, OnGatewayDisconnect {
     this.server.to(rooms).emit('results:update', results);
   }
 
-  private async broadcastParticipants(code: string) {
-    const sockets = await this.server.in(room(code, 'audience')).fetchSockets();
-    this.server
-      .to([room(code, 'screen'), room(code, 'admin')])
-      .emit('participants:count', sockets.length);
+  private readonly pendingParticipants = new Map<string, NodeJS.Timeout>();
+
+  // Agrupa las conexiones/desconexiones en ráfaga en un solo aviso.
+  private broadcastParticipants(code: string) {
+    if (this.pendingParticipants.has(code)) return;
+    this.pendingParticipants.set(
+      code,
+      setTimeout(() => {
+        this.pendingParticipants.delete(code);
+        // Tamaño de la sala en memoria: sin recorrer los sockets.
+        const count =
+          this.server.adapter.rooms.get(room(code, 'audience'))?.size ?? 0;
+        this.server
+          .to([room(code, 'screen'), room(code, 'admin')])
+          .emit('participants:count', count);
+      }, PARTICIPANTS_DEBOUNCE_MS),
+    );
   }
 
   private assertAdmin(client: LiveSocket) {
